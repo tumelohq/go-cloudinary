@@ -36,7 +36,7 @@ func TestDial(t *testing.T) {
 	if s.cloudName != k.cloudName || s.apiKey != k.apiKey || s.apiSecret != k.apiSecret {
 		t.Errorf("wrong service instance. Expect %v, got %v", k, s)
 	}
-	uexp := fmt.Sprintf("%s/%s/image/upload/", baseUploadUrl, s.cloudName)
+	uexp := fmt.Sprintf("%s/%s/image/upload/", baseUploadURL, s.cloudName)
 	if s.uploadURI.String() != uexp {
 		t.Errorf("wrong upload URI. Expect %s, got %s", uexp, s.uploadURI.String())
 	}
@@ -71,27 +71,10 @@ func TestKeepFiles(t *testing.T) {
 	pat = "images/\\.jpg$"
 	err := s.KeepFiles(pat)
 	if err != nil {
-		t.Errorf("valid pattern should return no error", pat)
+		t.Error("valid pattern should return no error", pat)
 	}
 	if s.keepFilesPattern == nil {
 		t.Errorf(".keepFilesPattern attribute is still nil with a valid pattern")
-	}
-}
-
-func TestUseDatabase(t *testing.T) {
-	s := new(Service)
-	if err := s.UseDatabase("baduri::"); err == nil {
-		t.Error("should fail on bad uri")
-	}
-	// Bad scheme
-	if err := s.UseDatabase("http://localhost"); err == nil {
-		t.Error("should fail if URL scheme different from mongodb://")
-	}
-	if err := s.UseDatabase("mongodb://localhost/cloudinary"); err != nil {
-		t.Error("please ensure you have a running MongoDB server on localhost")
-	}
-	if s.dbSession == nil || s.col == nil {
-		t.Error("service's dbSession and col should not be nil")
 	}
 }
 
