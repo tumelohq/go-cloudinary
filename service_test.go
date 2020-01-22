@@ -6,6 +6,8 @@ package cloudinary
 
 import (
 	"fmt"
+	"net/url"
+	"os"
 	"testing"
 )
 
@@ -40,56 +42,40 @@ func TestDial(t *testing.T) {
 	if s.uploadURI.String() != uexp {
 		t.Errorf("wrong upload URI. Expect %s, got %s", uexp, s.uploadURI.String())
 	}
-
 }
 
-func TestVerbose(t *testing.T) {
-	s := new(Service)
-	s.Verbose(true)
-	if !s.verbose {
-		t.Errorf("wrong verbose attribute. Expect %v, got %v", true, s.verbose)
-	}
-}
-
-func TestSimulate(t *testing.T) {
-	s := new(Service)
-	s.Simulate(true)
-	if !s.simulate {
-		t.Errorf("wrong simulate attribute. Expect %v, got %v", true, s.simulate)
-	}
-}
-
-func TestKeepFiles(t *testing.T) {
-	s := new(Service)
-	if err := s.KeepFiles(""); err != nil {
-		t.Error("empty pattern should not raise an error")
-	}
-	pat := "[[;"
-	if err := s.KeepFiles(pat); err == nil {
-		t.Errorf("wrong pattern %s should raise an error", pat)
-	}
-	pat = "images/\\.jpg$"
-	err := s.KeepFiles(pat)
+func TestUploadByFile(t *testing.T) {
+	s, err := Dial(os.Getenv("CLOUDINARY"))
 	if err != nil {
-		t.Error("valid pattern should return no error", pat)
+		t.Fatal(err)
 	}
-	if s.keepFilesPattern == nil {
-		t.Errorf(".keepFilesPattern attribute is still nil with a valid pattern")
+
+	f, err := os.Open("test_logo.png")
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	id, err := s.UploadImageFile(f, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(id)
 }
 
-func TestCleanAssetName(t *testing.T) {
-	assets := [][4]string{
-		// order: path, basepath, prepend, expected result
-		{"/tmp/css/default.css", "/tmp/", "new", "new/css/default"},
-		{"/a/b/c.png", "/a", "", "b/c"},
-		{"/a/b/c.png", "/a ", "  ", "b/c"}, // With spaces
-		{"/a/b/c.png", "", "/x", "x/a/b/c"},
+func TestUploadByURL(t *testing.T) {
+	s, err := Dial(os.Getenv("CLOUDINARY"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, p := range assets {
-		c := cleanAssetName(p[0], p[1], p[2])
-		if c != p[3] {
-			t.Errorf("wrong cleaned name. Expect '%s', got '%s'", p[3], c)
-		}
+
+	imgURL, err := url.Parse("https://en.wikipedia.org/w/skins/Vector/images/user-avatar.svg?b7f58")
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	id, err := s.UploadImageURL(imgURL, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(id)
 }
