@@ -210,7 +210,7 @@ func (s *Service) doRequest(req *request) (*url.URL, error) {
 	}
 	defer closeReq()
 
-	resp, err := http.DefaultClient.Do(HTTPreq)
+	resp, err := s.client.Do(HTTPreq)
 	if err != nil {
 		return nil, err
 	}
