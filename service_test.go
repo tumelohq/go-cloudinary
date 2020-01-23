@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDial(t *testing.T) {
@@ -78,4 +79,47 @@ func TestUploadByURL(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(id)
+}
+
+func TestGetResizedImageURL(t *testing.T) {
+
+	k := &Service{
+		cloudName: "cloudname",
+		apiKey:    "login",
+		apiSecret: "secret",
+	}
+	tests := []struct {
+		name     string
+		imageURL string
+		height   int
+		width    int
+		wantURL  string
+	}{
+		{
+			name:     "happy path",
+			imageURL: "https://res.cloudinary.com/tumelo-dev/image/upload/v1579703365/q8zrn0wevsuj30albned.png",
+			height:   200,
+			width:    100,
+			wantURL:  "https://res.cloudinary.com/tumelo-dev/image/upload/w_100,h_200,c_fit/v1579703365/q8zrn0wevsuj30albned.png",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url, err := url.Parse(tt.imageURL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantURL, err := url.Parse(tt.wantURL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			resized, err := k.GetResizedImageURL(url, tt.width, tt.height)
+			if err != nil{
+				t.Fatal(err)
+			}
+			assert.Equal(t, wantURL, resized)
+		})
+	}
 }

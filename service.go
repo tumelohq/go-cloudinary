@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -127,6 +128,25 @@ func (s *Service) UploadImageURL(URL *url.URL, filename string) (publicID *url.U
 	}
 
 	return s.doRequest(req)
+}
+
+// GetResizedImageURL will take a URL to an original image and return a URL to a resized version of it
+func (s *Service) GetResizedImageURL(ID *url.URL, width, height int) (publicID *url.URL, err error) {
+	path := ID.Path
+	pathParts := strings.Split(path, "/")
+	if pathParts[2] != "image" || pathParts[3] != "upload" {
+		return nil, errors.New("url must be of format https://res.cloudinary.com/<cloudName>/image/upload/")
+	}
+
+	resizedParams := fmt.Sprintf("w_%d,h_%d,c_fit", width, height)
+
+	//insert params after position 4
+	newPath := append(pathParts[:4], append([]string{resizedParams}, pathParts[4:]...)...)
+
+	ID.Path = strings.Join(newPath, "/")
+
+	return ID, nil
+
 }
 
 func newRequest(uri, apiKey, apiSecret string) (*request, error) {
@@ -254,33 +274,36 @@ func handleHTTPResponse(resp *http.Response) (map[string]interface{}, error) {
 	return m, nil
 }
 
-// // Delete deletes a resource uploaded to Cloudinary.
-// func (s *Service) Delete(publicID, prepend string) error {
-// 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-// 	data := url.Values{
-// 		"api_key":   []string{s.apiKey},
-// 		"public_id": []string{prepend + publicID},
-// 		"timestamp": []string{timestamp},
-// 	}
+// Delete deletes a resource uploaded to Cloudinary.
+func (s *Service) Delete(publicURL url.URL) error {
+	return errors.New("Not implemented")
+	// publicID := publicURL.Path
 
-// 	// Signature
-// 	hash := sha1.New()
-// 	part := fmt.Sprintf("public_id=%s&timestamp=%s%s", prepend+publicID, timestamp, s.apiSecret)
-// 	io.WriteString(hash, part)
-// 	data.Set("signature", fmt.Sprintf("%x", hash.Sum(nil)))
+	// timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	// data := url.Values{
+	// 	"api_key":   []string{s.apiKey},
+	// 	"public_id": []string{publicID.String()},
+	// 	"timestamp": []string{timestamp},
+	// }
 
-// 	resp, err := http.PostForm(fmt.Sprintf("%s/%s/image/destroy/", baseUploadURL, s.cloudName), data)
-// 	if err != nil {
-// 		return err
-// 	}
+	// // Signature
+	// hash := sha1.New()
+	// part := fmt.Sprintf("public_id=%s&timestamp=%s%s", publicID, timestamp, s.apiSecret)
+	// io.WriteString(hash, part)
+	// data.Set("signature", fmt.Sprintf("%x", hash.Sum(nil)))
 
-// 	m, err := handleHTTPResponse(resp)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if e, ok := m["result"]; ok {
-// 		fmt.Println(e.(string))
-// 	}
+	// resp, err := http.PostForm(fmt.Sprintf("%s/%s/image/destroy/", baseUploadURL, s.cloudName), data)
+	// if err != nil {
+	// 	return err
+	// }
 
-// 	return nil
-// }
+	// m, err := handleHTTPResponse(resp)
+	// if err != nil {
+	// 	return err
+	// }
+	// if e, ok := m["result"]; ok {
+	// 	fmt.Println(e.(string))
+	// }
+
+	// return nil
+}
