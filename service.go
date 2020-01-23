@@ -275,7 +275,7 @@ func handleHTTPResponse(resp *http.Response) (map[string]interface{}, error) {
 }
 
 // Delete deletes a resource uploaded to Cloudinary.
-func (s *Service) Delete(publicURL url.URL) error {
+func (s *Service) Delete(publicURL *url.URL) error {
 	return errors.New("Not implemented")
 	// publicID := publicURL.Path
 
