@@ -59,6 +59,11 @@ type request struct {
 	w   *multipart.Writer
 }
 
+type size struct {
+	width  int
+	height int
+}
+
 // Dial will use the url to connect to the Cloudinary service.
 // The uri parameter must be a valid URI with the cloudinary:// scheme,
 // e.g.
@@ -117,6 +122,7 @@ func (s *Service) UploadImageFile(data io.Reader, filename string) (publicID *ur
 }
 
 // UploadImageURL will add an image to cloudinary when given a URL to the image
+// if filename is left blank Cloudinary will give the image a random filename
 func (s *Service) UploadImageURL(URL *url.URL, filename string) (publicID *url.URL, err error) {
 	req, err := newRequest(s.DefaultUploadURI().String(), s.apiKey, s.apiSecret)
 	if err != nil {
@@ -131,14 +137,14 @@ func (s *Service) UploadImageURL(URL *url.URL, filename string) (publicID *url.U
 }
 
 // GetResizedImageURL will take a URL to an original image and return a URL to a resized version of it
-func (s *Service) GetResizedImageURL(ID *url.URL, width, height int) (publicID *url.URL, err error) {
+func (s *Service) GetResizedImageURL(ID *url.URL, size size) (publicID *url.URL, err error) {
 	path := ID.Path
 	pathParts := strings.Split(path, "/")
-	if pathParts[2] != "image" || pathParts[3] != "upload" {
+	if len(pathParts) < 4 || ID.Hostname() != "res.cloudinary.com" || pathParts[2] != "image" || pathParts[3] != "upload" {
 		return nil, errors.New("url must be of format https://res.cloudinary.com/<cloudName>/image/upload/")
 	}
 
-	resizedParams := fmt.Sprintf("w_%d,h_%d,c_fit", width, height)
+	resizedParams := fmt.Sprintf("w_%d,h_%d,c_fit", size.width, size.height)
 
 	//insert params after position 4
 	newPath := append(pathParts[:4], append([]string{resizedParams}, pathParts[4:]...)...)
@@ -146,7 +152,6 @@ func (s *Service) GetResizedImageURL(ID *url.URL, width, height int) (publicID *
 	ID.Path = strings.Join(newPath, "/")
 
 	return ID, nil
-
 }
 
 func newRequest(uri, apiKey, apiSecret string) (*request, error) {

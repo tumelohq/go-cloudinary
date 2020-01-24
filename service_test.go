@@ -6,10 +6,10 @@ package cloudinary
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"net/url"
 	"os"
 	"testing"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDial(t *testing.T) {
@@ -81,45 +81,94 @@ func TestUploadByURL(t *testing.T) {
 	t.Log(id)
 }
 
-func TestGetResizedImageURL(t *testing.T) {
-
-	k := &Service{
-		cloudName: "cloudname",
-		apiKey:    "login",
-		apiSecret: "secret",
+func goldenImageURL() *url.URL {
+	return &url.URL{
+		Scheme: "https",
+		Host:   "res.cloudinary.com",
+		Path:   "/yourcloudname/image/upload/v1579703365/q8zrn0wevsuj30albned.png",
 	}
+}
+
+func TestGetResizedImageURL(t *testing.T) {
 	tests := []struct {
 		name     string
-		imageURL string
-		height   int
-		width    int
+		imageURL *url.URL
+		size     size
 		wantURL  string
+		wantErr  bool
 	}{
 		{
 			name:     "happy path",
-			imageURL: "https://res.cloudinary.com/tumelo-dev/image/upload/v1579703365/q8zrn0wevsuj30albned.png",
-			height:   200,
-			width:    100,
-			wantURL:  "https://res.cloudinary.com/tumelo-dev/image/upload/w_100,h_200,c_fit/v1579703365/q8zrn0wevsuj30albned.png",
+			imageURL: goldenImageURL(),
+			size: size{
+				width:  100,
+				height: 200,
+			},
+			wantURL: "https://res.cloudinary.com/yourcloudname/image/upload/w_100,h_200,c_fit/v1579703365/q8zrn0wevsuj30albned.png",
+		},
+		{
+			name: "happy path",
+			imageURL: func() *url.URL {
+				a := goldenImageURL()
+				a.Path = "/yourcloudname/image/upload/img.jpg"
+				return a
+			}(),
+			size: size{
+				width:  100,
+				height: 200,
+			},
+			wantURL: "https://res.cloudinary.com/yourcloudname/image/upload/w_100,h_200,c_fit/img.jpg",
+		},
+		{
+			name: "error - bad hostname",
+			imageURL: func() *url.URL {
+				a := goldenImageURL()
+				a.Host = "blah"
+				return a
+			}(),
+			size: size{
+				width:  100,
+				height: 200,
+			},
+			wantErr: true,
+		},
+		{
+			name: "error - bad path",
+			imageURL: func() *url.URL {
+				a := goldenImageURL()
+				a.Path = "yourcloudname/blah/laaa.png"
+				return a
+			}(),
+			size: size{
+				width:  100,
+				height: 200,
+			},
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url, err := url.Parse(tt.imageURL)
-			if err != nil {
-				t.Fatal(err)
-			}
-			wantURL, err := url.Parse(tt.wantURL)
-			if err != nil {
-				t.Fatal(err)
+			// Given
+			k := &Service{
+				cloudName: "cloudname",
+				apiKey:    "login",
+				apiSecret: "secret",
 			}
 
-			resized, err := k.GetResizedImageURL(url, tt.width, tt.height)
-			if err != nil{
-				t.Fatal(err)
+			//When
+			resized, err := k.GetResizedImageURL(tt.imageURL, tt.size)
+
+			//Should
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("expecting an error: %v. error is: %v", tt.wantErr, err)
 			}
-			assert.Equal(t, wantURL, resized)
+
+			if resized == nil {
+				assert.Equal(t, tt.wantURL, "")
+			} else {
+				assert.Equal(t, tt.wantURL, resized.String())
+			}
 		})
 	}
 }
